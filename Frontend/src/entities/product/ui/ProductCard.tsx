@@ -1,72 +1,82 @@
+'use client'
+
+import Link from 'next/link'
+import { ProductCardQuickAdd } from '@/entities/cart'
 import type { Product } from '../model/types'
-import { CartIcon, HeartIcon } from '@/shared/ui/Icons'
-
-const availabilityStyle = {
-  'in-stock': 'bg-success/15 text-success',
-  'pre-order': 'bg-warning/15 text-warning',
-  'new-release': 'bg-primary/20 text-primary-soft',
-} as const
-
-const availabilityLabel = {
-  'in-stock': 'In stock',
-  'pre-order': 'Pre-order',
-  'new-release': 'New release',
-} as const
+import { ProductCardGallery } from './ProductCardGallery'
 
 type ProductCardProps = {
   product: Product
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+function StatusBadge({ product }: { product: Product }) {
+  if (product.availability !== 'pre-order') return null
   return (
-    <article className="group flex flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface transition-colors duration-200 hover:border-border hover:bg-surface-elevated/40">
-      <div className="relative aspect-[4/5] overflow-hidden bg-surface-elevated">
-        <div
-          className="absolute inset-0 bg-linear-to-b from-primary/10 via-transparent to-bg/80"
-          aria-hidden
-        />
-        <div className="flex size-full items-center justify-center p-8">
-          <span className="font-display text-5xl text-primary-soft/25 select-none">
-            {product.name.charAt(0)}
-          </span>
-        </div>
+    <span className="product-card__badge product-card__badge--preorder">
+      Pre-order
+    </span>
+  )
+}
 
-        <span
-          className={`absolute left-3 top-3 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${availabilityStyle[product.availability]}`}
+export function ProductCard({ product }: ProductCardProps) {
+  const priceLabel = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: product.price % 1 === 0 ? 0 : 2,
+  }).format(product.price)
+
+  const maxCartQty = product.stockCount ?? 99
+  const href = `/product/${product.id}`
+
+  return (
+    <article className="product-card group">
+      <div className="product-card__shell product-card__shell--clickable">
+        <Link
+          href={href}
+          className="product-card__link"
+          aria-label={`${product.brand}, ${product.name}, ${priceLabel}`}
         >
-          {availabilityLabel[product.availability]}
-        </span>
+          <div className="product-card__media">
+            <StatusBadge product={product} />
+            <div className="product-card__well">
+              <ProductCardGallery
+                productId={product.id}
+                productName={product.name}
+                images={product.images}
+                variant="catalog"
+              />
+            </div>
+          </div>
 
-        <button
-          type="button"
-          className="absolute right-3 top-3 cursor-pointer rounded-full border border-border-subtle bg-bg/60 p-2 text-text-secondary opacity-0 backdrop-blur-sm transition-all duration-200 hover:border-primary-soft hover:text-primary-soft focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft group-hover:opacity-100"
-          aria-label={`Save ${product.name}`}
-        >
-          <HeartIcon size="sm" />
-        </button>
-      </div>
+          <div className="product-card__body">
+            <p className="product-card__brand">{product.brand}</p>
+            <h3 className="product-card__title type-product-title" title={product.name}>
+              {product.shortDescription}
+            </h3>
+            <p className="product-card__ritual">
+              <span>{product.formatKey}</span>
+              <span className="product-card__dot" aria-hidden>
+                ·
+              </span>
+              <span>{product.sizeLabel}</span>
+              <span className="product-card__dot" aria-hidden>
+                ·
+              </span>
+              <span className="product-card__category-inline">
+                {product.category}
+              </span>
+            </p>
+          </div>
+        </Link>
 
-      <div className="flex flex-1 flex-col p-4 pt-5">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-muted">
-          {product.series}
-        </p>
-        <h3 className="mt-1.5 text-base font-semibold leading-snug text-text-primary">
-          {product.name}
-        </h3>
-        <p className="mt-1 text-sm text-text-secondary">{product.scale}</p>
-        <p className="mt-1 text-xs text-text-muted">{product.brand}</p>
-
-        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
-          <p className="text-xl font-semibold tabular-nums text-primary-soft">
-            ${product.price}
-          </p>
-          <button
-            type="button"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white opacity-0 transition-all duration-200 hover:bg-primary-hover focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft group-hover:opacity-100 sm:opacity-100 sm:px-4"
-          >
-            <CartIcon size="sm" className="text-white" />
-            <span className="hidden sm:inline">Add</span>
-          </button>
+        <div className="product-card__footer">
+          <Link href={href} className="product-card__price-link" tabIndex={-1}>
+            <p className="product-card__price">{priceLabel}</p>
+          </Link>
+          <ProductCardQuickAdd
+            productId={product.id}
+            maxQuantity={maxCartQty}
+          />
         </div>
       </div>
     </article>

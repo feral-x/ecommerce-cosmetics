@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { defaultCatalogFilters } from '@/widgets/catalog-filters'
+import { defaultCatalogFilters } from '@/shared/model/catalog-filters'
 import { filterProducts } from '../lib/filter-products'
 import {
   allBrands,
-  allScales,
-  allSeries,
+  allCategories,
+  allFormats,
   mockProducts,
 } from './mock-products'
 import type { ProductAvailability } from './types'
@@ -22,23 +22,25 @@ describe('mockProducts dataset', () => {
 
     for (const p of mockProducts) {
       expect(p.name.length).toBeGreaterThan(0)
-      expect(p.series.length).toBeGreaterThan(0)
+      expect(p.line.length).toBeGreaterThan(0)
+      expect(p.category.length).toBeGreaterThan(0)
       expect(p.price).toBeGreaterThan(0)
       expect(availabilitySet.has(p.availability)).toBe(true)
-      expect(p.scaleKey.length).toBeGreaterThan(0)
+      expect(p.formatKey.length).toBeGreaterThan(0)
+      expect(p.images.length).toBeGreaterThan(0)
     }
   })
 
   it('derives sorted facet lists from products', () => {
-    expect(allSeries).toEqual(
-      [...new Set(mockProducts.map((p) => p.series))].sort(),
+    expect(allCategories).toEqual(
+      [...new Set(mockProducts.map((p) => p.category))].sort(),
     )
     expect(allBrands).toEqual(
       [...new Set(mockProducts.map((p) => p.brand))].sort(),
     )
-    expect(allScales.length).toBeGreaterThan(0)
-    for (const scale of allScales) {
-      expect(mockProducts.some((p) => p.scaleKey === scale)).toBe(true)
+    expect(allFormats.length).toBeGreaterThan(0)
+    for (const format of allFormats) {
+      expect(mockProducts.some((p) => p.formatKey === format)).toBe(true)
     }
   })
 
@@ -46,5 +48,9 @@ describe('mockProducts dataset', () => {
     expect(filterProducts(mockProducts, defaultCatalogFilters, 'featured')).toHaveLength(
       mockProducts.length,
     )
+  })
+
+  it('has expanded catalog size', () => {
+    expect(mockProducts.length).toBeGreaterThanOrEqual(50)
   })
 })

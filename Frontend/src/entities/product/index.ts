@@ -1,8 +1,23 @@
-export type { Product, ProductAvailability, SortOption } from './model/types'
+export type {
+  Product,
+  ProductAvailability,
+  ProductCategory,
+  ProductFormat,
+  SkinType,
+  SortOption,
+} from './model/types'
 export {
   allBrands,
-  allScales,
-  allSeries,
+  allCategories,
+  allFormats,
+  getAllProductIds,
+  getProductById,
   mockProducts,
 } from './model/mock-products'
+export {
+  catalogBootstrapQueryOptions,
+  catalogFacetsQueryOptions,
+  catalogProductsQueryOptions,
+} from './api/catalog-bootstrap'
 export { ProductCard } from './ui/ProductCard'
+export { ProductCardLoader } from './ui/ProductCardLoader'

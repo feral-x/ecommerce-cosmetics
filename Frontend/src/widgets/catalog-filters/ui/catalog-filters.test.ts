@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { countActiveFilters, defaultCatalogFilters } from './CatalogFilters'
+import {
+  countActiveFilters,
+  defaultCatalogFilters,
+} from '@/shared/model/catalog-filters'
 
 describe('countActiveFilters', () => {
   it('returns 0 for defaults', () => {
@@ -10,8 +13,8 @@ describe('countActiveFilters', () => {
     expect(
       countActiveFilters({
         ...defaultCatalogFilters,
-        selectedSeries: ['One Piece'],
-        matureFilter: 'only',
+        selectedCategories: ['Skincare'],
+        fragranceFreeOnly: true,
         priceMin: 50,
       }),
     ).toBe(3)

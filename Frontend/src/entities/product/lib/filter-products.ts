@@ -1,15 +1,28 @@
-import type { CatalogFiltersState } from '@/widgets/catalog-filters'
+import type { CatalogFiltersState } from '@/shared/model/catalog-filters'
 import type { Product, SortOption } from '../model/types'
 
 export function filterProducts(
   products: Product[],
   filters: CatalogFiltersState,
   sort: SortOption,
+  nameQuery = '',
 ): Product[] {
+  const nameQ = nameQuery.trim().toLowerCase()
+
   let list = products.filter((p) => {
+    if (nameQ && !p.name.toLowerCase().includes(nameQ)) {
+      return false
+    }
     if (
-      filters.selectedSeries.length > 0 &&
-      !filters.selectedSeries.includes(p.series)
+      filters.lineQuery.trim() &&
+      !p.line.toLowerCase().includes(filters.lineQuery.trim().toLowerCase()) &&
+      !p.name.toLowerCase().includes(filters.lineQuery.trim().toLowerCase())
+    ) {
+      return false
+    }
+    if (
+      filters.selectedCategories.length > 0 &&
+      !filters.selectedCategories.includes(p.category)
     ) {
       return false
     }
@@ -20,8 +33,8 @@ export function filterProducts(
       return false
     }
     if (
-      filters.selectedScales.length > 0 &&
-      !filters.selectedScales.includes(p.scaleKey)
+      filters.selectedFormats.length > 0 &&
+      !filters.selectedFormats.includes(p.formatKey)
     ) {
       return false
     }
@@ -31,8 +44,13 @@ export function filterProducts(
     ) {
       return false
     }
-    if (filters.matureFilter === 'exclude' && p.mature) return false
-    if (filters.matureFilter === 'only' && !p.mature) return false
+    if (filters.fragranceFreeOnly && !p.fragranceFree) return false
+    if (filters.selectedSkinTypes.length > 0) {
+      const matchesSkin = filters.selectedSkinTypes.some((s) =>
+        p.skinTypes.includes(s),
+      )
+      if (!matchesSkin) return false
+    }
     if (p.price < filters.priceMin || p.price > filters.priceMax) return false
     return true
   })

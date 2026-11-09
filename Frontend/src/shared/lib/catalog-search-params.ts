@@ -1,6 +1,9 @@
-import type { ProductAvailability } from '@/entities/product'
-import type { CatalogFiltersState } from '@/widgets/catalog-filters'
-import { defaultCatalogFilters } from '@/widgets/catalog-filters'
+import type { ProductAvailability, SkinType, SortOption } from '@/entities/product'
+import {
+  CATALOG_PRICE_MAX,
+  defaultCatalogFilters,
+  type CatalogFiltersState,
+} from '@/shared/model/catalog-filters'
 
 const availabilityValues: ProductAvailability[] = [
   'in-stock',
@@ -8,7 +11,15 @@ const availabilityValues: ProductAvailability[] = [
   'new-release',
 ]
 
-const matureValues = ['all', 'exclude', 'only'] as const
+const skinTypeValues: SkinType[] = [
+  'dry',
+  'oily',
+  'combination',
+  'sensitive',
+  'normal',
+]
+
+const sortValues: SortOption[] = ['featured', 'price-asc', 'price-desc', 'name']
 
 function parseAvailability(raw: string | null): ProductAvailability[] {
   if (!raw) return []
@@ -20,25 +31,52 @@ function parseAvailability(raw: string | null): ProductAvailability[] {
     )
 }
 
-function parseMature(raw: string | null): CatalogFiltersState['matureFilter'] {
-  if (raw && matureValues.includes(raw as (typeof matureValues)[number])) {
-    return raw as CatalogFiltersState['matureFilter']
-  }
-  return 'all'
+function parseSkinTypes(raw: string | null): SkinType[] {
+  if (!raw) return []
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s): s is SkinType => skinTypeValues.includes(s as SkinType))
 }
 
-export function filtersFromSearchParams(
-  search: string,
-): CatalogFiltersState {
+function parseSort(raw: string | null): SortOption {
+  if (raw && sortValues.includes(raw as SortOption)) {
+    return raw as SortOption
+  }
+  return 'featured'
+}
+
+function parsePage(raw: string | null): number {
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 1) return 1
+  return Math.floor(n)
+}
+
+export type CatalogViewState = {
+  filters: CatalogFiltersState
+  sort: SortOption
+  page: number
+  nameQuery: string
+}
+
+export function filtersFromSearchParams(search: string): CatalogFiltersState {
+  return catalogViewFromSearchParams(search).filters
+}
+
+export function catalogViewFromSearchParams(search: string): CatalogViewState {
   const p = new URLSearchParams(search)
   const base = { ...defaultCatalogFilters }
 
   base.selectedAvailability = parseAvailability(p.get('availability'))
-  base.matureFilter = parseMature(p.get('mature'))
+  base.selectedSkinTypes = parseSkinTypes(p.get('skin'))
+  base.fragranceFreeOnly = p.get('fragranceFree') === '1'
 
-  const series = p.get('series')
-  if (series) {
-    base.selectedSeries = series.split(',').map((s) => s.trim()).filter(Boolean)
+  const categories = p.get('category')
+  if (categories) {
+    base.selectedCategories = categories
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
   }
 
   const brands = p.get('brand')
@@ -46,17 +84,38 @@ export function filtersFromSearchParams(
     base.selectedBrands = brands.split(',').map((s) => s.trim()).filter(Boolean)
   }
 
-  const scales = p.get('scale')
-  if (scales) {
-    base.selectedScales = scales.split(',').map((s) => s.trim()).filter(Boolean)
+  const formats = p.get('format')
+  if (formats) {
+    base.selectedFormats = formats.split(',').map((s) => s.trim()).filter(Boolean)
   }
 
   const min = p.get('min')
   const max = p.get('max')
   if (min != null && min !== '') base.priceMin = Number(min) || 0
-  if (max != null && max !== '') base.priceMax = Number(max) || base.priceMax
+  if (max != null && max !== '') {
+    base.priceMax = Number(max) || base.priceMax
+  }
 
-  return base
+  const lineQ = p.get('lineQ')
+  if (lineQ) base.lineQuery = lineQ
+
+  const nameQuery = p.get('q')?.trim() ?? ''
+
+  return {
+    filters: base,
+    sort: parseSort(p.get('sort')),
+    page: parsePage(p.get('page')),
+    nameQuery,
+  }
+}
+
+/** Ключ bootstrap-query: только параметры, влияющие на фасеты/каталог с API. */
+export function catalogBootstrapSearchKey(search: string): string {
+  const p = new URLSearchParams(search)
+  for (const key of ['sort', 'page', 'lineQ', 'q']) {
+    p.delete(key)
+  }
+  return p.toString()
 }
 
 export function searchParamsFromFilters(
@@ -67,71 +126,101 @@ export function searchParamsFromFilters(
   if (filters.selectedAvailability.length > 0) {
     p.set('availability', filters.selectedAvailability.join(','))
   }
-  if (filters.matureFilter !== 'all') {
-    p.set('mature', filters.matureFilter)
+  if (filters.selectedSkinTypes.length > 0) {
+    p.set('skin', filters.selectedSkinTypes.join(','))
   }
-  if (filters.selectedSeries.length > 0) {
-    p.set('series', filters.selectedSeries.join(','))
+  if (filters.fragranceFreeOnly) {
+    p.set('fragranceFree', '1')
+  }
+  if (filters.selectedCategories.length > 0) {
+    p.set('category', filters.selectedCategories.join(','))
   }
   if (filters.selectedBrands.length > 0) {
     p.set('brand', filters.selectedBrands.join(','))
   }
-  if (filters.selectedScales.length > 0) {
-    p.set('scale', filters.selectedScales.join(','))
+  if (filters.selectedFormats.length > 0) {
+    p.set('format', filters.selectedFormats.join(','))
   }
   if (filters.priceMin > 0) p.set('min', String(filters.priceMin))
-  if (filters.priceMax < 500) p.set('max', String(filters.priceMax))
+  if (filters.priceMax < CATALOG_PRICE_MAX) {
+    p.set('max', String(filters.priceMax))
+  }
+  if (filters.lineQuery.trim()) {
+    p.set('lineQ', filters.lineQuery.trim())
+  }
 
   return p
 }
 
-export type CatalogNavPreset =
-  | 'browse'
-  | 'collections'
-  | 'new-releases'
-  | 'pre-orders'
+export function searchParamsFromCatalogView(
+  state: CatalogViewState,
+  preserved?: { spotlight?: string | null },
+): URLSearchParams {
+  const p = searchParamsFromFilters(state.filters)
+  if (state.sort !== 'featured') p.set('sort', state.sort)
+  if (state.page > 1) p.set('page', String(state.page))
+  if (state.nameQuery.trim()) p.set('q', state.nameQuery.trim())
+  if (preserved?.spotlight) p.set('spotlight', preserved.spotlight)
+  return p
+}
 
-export const catalogNavLinks: {
-  preset: CatalogNavPreset
+export type MainNavId = 'browse' | 'bundles' | 'new-releases' | 'pre-orders'
+
+/** @deprecated use mainNavLinks */
+export type CatalogNavPreset = MainNavId
+
+export const mainNavLinks: {
+  id: MainNavId
   label: string
-  search: string
+  href: string
 }[] = [
-  { preset: 'browse', label: 'Browse Figures', search: '' },
-  { preset: 'collections', label: 'Collections', search: '?view=collections' },
+  { id: 'browse', label: 'Shop All', href: '/catalog' },
+  { id: 'bundles', label: 'Bundles', href: '/bundles' },
   {
-    preset: 'new-releases',
-    label: 'New Releases',
-    search: '?availability=new-release',
+    id: 'new-releases',
+    label: 'New Arrivals',
+    href: '/catalog?availability=new-release',
   },
   {
-    preset: 'pre-orders',
-    label: 'Pre-Orders',
-    search: '?availability=pre-order',
+    id: 'pre-orders',
+    label: 'Pre-Order',
+    href: '/catalog?availability=pre-order',
   },
 ]
 
-export function isCatalogNavPresetActive(
-  preset: CatalogNavPreset,
+/** @deprecated use mainNavLinks */
+export const catalogNavLinks = mainNavLinks.map((link) => ({
+  preset: link.id,
+  label: link.label,
+  search: link.href.replace(/^\/catalog/, '') || '',
+}))
+
+export function isMainNavLinkActive(
+  id: MainNavId,
   pathname: string,
   search: string,
 ): boolean {
+  if (id === 'bundles') return pathname === '/bundles'
   if (pathname !== '/catalog') return false
   const p = new URLSearchParams(search)
 
-  switch (preset) {
+  switch (id) {
     case 'browse':
       return (
         !p.get('availability') &&
-        !p.get('view') &&
-        !p.get('mature') &&
-        !p.get('series') &&
+        !p.get('spotlight') &&
+        !p.get('skin') &&
+        !p.get('fragranceFree') &&
+        !p.get('category') &&
         !p.get('brand') &&
-        !p.get('scale') &&
+        !p.get('format') &&
         !p.get('min') &&
-        !p.get('max')
+        !p.get('max') &&
+        !p.get('lineQ') &&
+        !p.get('q') &&
+        !p.get('sort') &&
+        !p.get('page')
       )
-    case 'collections':
-      return p.get('view') === 'collections'
     case 'new-releases':
       return p.get('availability') === 'new-release'
     case 'pre-orders':
@@ -140,3 +229,6 @@ export function isCatalogNavPresetActive(
       return false
   }
 }
+
+/** @deprecated use isMainNavLinkActive */
+export const isCatalogNavPresetActive = isMainNavLinkActive

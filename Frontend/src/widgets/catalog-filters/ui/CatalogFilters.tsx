@@ -1,43 +1,47 @@
-import type { ReactNode } from 'react'
-import type { ProductAvailability } from '@/entities/product'
+'use client'
 
-export type CatalogFiltersState = {
-  seriesQuery: string
-  selectedSeries: string[]
-  selectedScales: string[]
-  selectedBrands: string[]
-  selectedAvailability: ProductAvailability[]
-  /** all | скрыть 18+ | только 18+ */
-  matureFilter: 'all' | 'exclude' | 'only'
-  priceMin: number
-  priceMax: number
-}
+import type { ReactNode } from 'react'
+import type { ProductAvailability, SkinType } from '@/entities/product'
+import {
+  CATALOG_PRICE_MAX,
+  type CatalogFiltersState,
+} from '@/shared/model/catalog-filters'
 
 type CatalogFiltersProps = {
-  series: string[]
+  categories: string[]
   brands: string[]
-  scales: string[]
+  formats: string[]
   filters: CatalogFiltersState
   activeCount: number
   onChange: (next: CatalogFiltersState) => void
   onReset: () => void
 }
 
-const priceMaxLimit = 500
-
 const availabilityOptions: {
   value: ProductAvailability
   label: string
 }[] = [
-  { value: 'new-release', label: 'New releases' },
+  { value: 'new-release', label: 'New arrivals' },
   { value: 'in-stock', label: 'In stock' },
   { value: 'pre-order', label: 'Pre-order' },
+]
+
+const skinTypeOptions: { value: SkinType; label: string }[] = [
+  { value: 'dry', label: 'Dry' },
+  { value: 'oily', label: 'Oily' },
+  { value: 'combination', label: 'Combination' },
+  { value: 'sensitive', label: 'Sensitive' },
+  { value: 'normal', label: 'Normal' },
 ]
 
 function toggleItem<T>(list: T[], item: T): T[] {
   return list.includes(item)
     ? list.filter((x) => x !== item)
     : [...list, item]
+}
+
+function filterSectionId(title: string) {
+  return `catalog-filter-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
 }
 
 function FilterSection({
@@ -47,64 +51,64 @@ function FilterSection({
   title: string
   children: ReactNode
 }) {
+  const titleId = filterSectionId(title)
   return (
-    <section className="border-t border-border-subtle pt-8 first:border-t-0 first:pt-0">
-      <h3 className="text-xs font-medium uppercase tracking-wider text-text-secondary">
+    <section
+      className="catalog-filter-section"
+      role="group"
+      aria-labelledby={titleId}
+    >
+      <h3 id={titleId} className="catalog-filter-section__title">
         {title}
       </h3>
-      <div className="mt-3">{children}</div>
+      <div className="catalog-filter-section__body">{children}</div>
     </section>
   )
 }
 
 export function CatalogFilters({
-  series,
+  categories,
   brands,
-  scales,
+  formats,
   filters,
   activeCount,
   onChange,
   onReset,
 }: CatalogFiltersProps) {
-  const filteredSeries = series.filter((s) =>
-    s.toLowerCase().includes(filters.seriesQuery.trim().toLowerCase()),
-  )
-
   return (
-    <aside className="catalog-filters-panel scrollbar-themed w-full">
-      <div className="flex items-center justify-between gap-4">
+    <aside
+      className="catalog-filters-panel scrollbar-themed w-full"
+      aria-label="Filters"
+    >
+      <div className="catalog-filters-toolbar flex items-center justify-between gap-4">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-text-primary">
             Filters
           </h2>
-          {activeCount > 0 && (
-            <p className="mt-1 text-[11px] text-text-muted">
-              {activeCount} active
-            </p>
-          )}
+          <p className="mt-1 text-[11px] text-text-muted" aria-live="polite">
+            {activeCount} active
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="filter-reset-btn"
-        >
+        <button type="button" onClick={onReset} className="filter-reset-btn">
           Reset
         </button>
       </div>
 
-      <FilterSection title="Series">
+      <FilterSection title="Product line">
         <input
           type="search"
-          placeholder="Search series…"
-          value={filters.seriesQuery}
-          onChange={(e) =>
-            onChange({ ...filters, seriesQuery: e.target.value })
-          }
+          placeholder="Search line or product…"
+          aria-label="Search product line"
+          value={filters.lineQuery}
+          onChange={(e) => onChange({ ...filters, lineQuery: e.target.value })}
           className="filter-input"
         />
-        <ul className="scrollbar-themed mt-3 max-h-[13.25rem] space-y-0.5 overflow-y-auto pr-1">
-          {filteredSeries.map((name) => {
-            const checked = filters.selectedSeries.includes(name)
+      </FilterSection>
+
+      <FilterSection title="Category">
+        <ul className="catalog-filter-list catalog-filter-list--scroll scrollbar-themed">
+          {categories.map((name) => {
+            const checked = filters.selectedCategories.includes(name)
             return (
               <li key={name}>
                 <label className="filter-option">
@@ -114,8 +118,8 @@ export function CatalogFilters({
                     onChange={() =>
                       onChange({
                         ...filters,
-                        selectedSeries: toggleItem(
-                          filters.selectedSeries,
+                        selectedCategories: toggleItem(
+                          filters.selectedCategories,
                           name,
                         ),
                       })
@@ -131,7 +135,7 @@ export function CatalogFilters({
       </FilterSection>
 
       <FilterSection title="Availability">
-        <ul className="space-y-0.5">
+        <ul className="catalog-filter-list">
           {availabilityOptions.map(({ value, label }) => (
             <li key={value}>
               <label className="filter-option">
@@ -149,33 +153,33 @@ export function CatalogFilters({
                   }
                   className="filter-checkbox"
                 />
-                {label}
+                <span className="leading-snug">{label}</span>
               </label>
             </li>
           ))}
         </ul>
       </FilterSection>
 
-      <FilterSection title="Scale">
-        <ul className="flex flex-wrap gap-2">
-          {scales.map((scale) => {
-            const active = filters.selectedScales.includes(scale)
+      <FilterSection title="Product type">
+        <ul className="catalog-filter-chips">
+          {formats.map((format) => {
+            const active = filters.selectedFormats.includes(format)
             return (
-              <li key={scale}>
+              <li key={format}>
                 <button
                   type="button"
                   onClick={() =>
                     onChange({
                       ...filters,
-                      selectedScales: toggleItem(
-                        filters.selectedScales,
-                        scale,
+                      selectedFormats: toggleItem(
+                        filters.selectedFormats,
+                        format,
                       ),
                     })
                   }
                   className={`filter-chip ${active ? 'filter-chip--active' : ''}`}
                 >
-                  {scale}
+                  {format}
                 </button>
               </li>
             )
@@ -184,7 +188,7 @@ export function CatalogFilters({
       </FilterSection>
 
       <FilterSection title="Brand">
-        <ul className="scrollbar-themed max-h-36 space-y-0.5 overflow-y-auto pr-1">
+        <ul className="catalog-filter-list catalog-filter-list--scroll-sm scrollbar-themed">
           {brands.map((brand) => (
             <li key={brand}>
               <label className="filter-option">
@@ -209,8 +213,48 @@ export function CatalogFilters({
         </ul>
       </FilterSection>
 
+      <FilterSection title="Skin type">
+        <ul className="catalog-filter-list">
+          {skinTypeOptions.map(({ value, label }) => (
+            <li key={value}>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={filters.selectedSkinTypes.includes(value)}
+                  onChange={() =>
+                    onChange({
+                      ...filters,
+                      selectedSkinTypes: toggleItem(
+                        filters.selectedSkinTypes,
+                        value,
+                      ),
+                    })
+                  }
+                  className="filter-checkbox"
+                />
+                <span className="leading-snug">{label}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </FilterSection>
+
+      <FilterSection title="Preferences">
+        <label className="filter-option">
+          <input
+            type="checkbox"
+            checked={filters.fragranceFreeOnly}
+            onChange={(e) =>
+              onChange({ ...filters, fragranceFreeOnly: e.target.checked })
+            }
+            className="filter-checkbox"
+          />
+          <span className="leading-snug">Fragrance-free only</span>
+        </label>
+      </FilterSection>
+
       <FilterSection title="Price (USD)">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="catalog-filter-price-fields grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-[11px] text-text-muted">Min</span>
             <input
@@ -235,13 +279,13 @@ export function CatalogFilters({
             <input
               type="number"
               min={filters.priceMin}
-              max={priceMaxLimit}
+              max={CATALOG_PRICE_MAX}
               value={filters.priceMax}
               onChange={(e) =>
                 onChange({
                   ...filters,
                   priceMax: Math.max(
-                    Number(e.target.value) || priceMaxLimit,
+                    Number(e.target.value) || CATALOG_PRICE_MAX,
                     filters.priceMin,
                   ),
                 })
@@ -253,7 +297,7 @@ export function CatalogFilters({
         <input
           type="range"
           min={0}
-          max={priceMaxLimit}
+          max={CATALOG_PRICE_MAX}
           value={filters.priceMax}
           onChange={(e) =>
             onChange({ ...filters, priceMax: Number(e.target.value) })
@@ -262,56 +306,7 @@ export function CatalogFilters({
           aria-label="Maximum price"
         />
       </FilterSection>
-
-      <FilterSection title="Content">
-        <ul className="space-y-0.5">
-          {(
-            [
-              ['all', 'All figures'],
-              ['exclude', 'Hide 18+'],
-              ['only', '18+ only'],
-            ] as const
-          ).map(([value, label]) => (
-            <li key={value}>
-              <label className="filter-option">
-                <input
-                  type="radio"
-                  name="matureFilter"
-                  checked={filters.matureFilter === value}
-                  onChange={() =>
-                    onChange({ ...filters, matureFilter: value })
-                  }
-                  className="filter-checkbox"
-                />
-                {label}
-              </label>
-            </li>
-          ))}
-        </ul>
-      </FilterSection>
       <div className="hidden h-6 shrink-0 lg:block" aria-hidden />
     </aside>
   )
-}
-
-export const defaultCatalogFilters: CatalogFiltersState = {
-  seriesQuery: '',
-  selectedSeries: [],
-  selectedScales: [],
-  selectedBrands: [],
-  selectedAvailability: [],
-  matureFilter: 'all',
-  priceMin: 0,
-  priceMax: 500,
-}
-
-export function countActiveFilters(filters: CatalogFiltersState): number {
-  let n = 0
-  if (filters.selectedSeries.length) n += 1
-  if (filters.selectedAvailability.length) n += 1
-  if (filters.selectedScales.length) n += 1
-  if (filters.selectedBrands.length) n += 1
-  if (filters.matureFilter !== 'all') n += 1
-  if (filters.priceMin > 0 || filters.priceMax < 500) n += 1
-  return n
 }

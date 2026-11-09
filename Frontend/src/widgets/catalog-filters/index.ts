@@ -1,6 +1,7 @@
+export { CatalogFilters } from './ui/CatalogFilters'
+export { CatalogFiltersSkeleton } from './ui/CatalogFiltersSkeleton'
 export {
-  CatalogFilters,
   countActiveFilters,
   defaultCatalogFilters,
   type CatalogFiltersState,
-} from './ui/CatalogFilters'
+} from '@/shared/model/catalog-filters'

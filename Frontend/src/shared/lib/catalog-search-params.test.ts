@@ -1,25 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import {
+  catalogViewFromSearchParams,
   filtersFromSearchParams,
   isCatalogNavPresetActive,
+  searchParamsFromCatalogView,
   searchParamsFromFilters,
 } from './catalog-search-params'
 import type { ProductAvailability } from '@/entities/product'
-import { defaultCatalogFilters } from '@/widgets/catalog-filters'
+import {
+  CATALOG_PRICE_MAX,
+  defaultCatalogFilters,
+} from '@/shared/model/catalog-filters'
 
 describe('filtersFromSearchParams', () => {
   it('returns defaults for empty query', () => {
     expect(filtersFromSearchParams('')).toEqual(defaultCatalogFilters)
   })
 
-  it('parses availability and mature', () => {
-    const f = filtersFromSearchParams('?availability=pre-order&mature=only')
+  it('parses availability and skin types', () => {
+    const f = filtersFromSearchParams('?availability=pre-order&skin=dry,sensitive')
     expect(f.selectedAvailability).toEqual(['pre-order'])
-    expect(f.matureFilter).toBe('only')
+    expect(f.selectedSkinTypes).toEqual(['dry', 'sensitive'])
   })
 
-  it('falls back mature filter when query is invalid', () => {
-    expect(filtersFromSearchParams('?mature=maybe').matureFilter).toBe('all')
+  it('parses fragrance-free flag', () => {
+    expect(filtersFromSearchParams('?fragranceFree=1').fragranceFreeOnly).toBe(true)
   })
 
   it('ignores invalid availability tokens', () => {
@@ -27,74 +32,108 @@ describe('filtersFromSearchParams', () => {
     expect(f.selectedAvailability).toEqual(['pre-order'])
   })
 
-  it('parses series, brand, scale, price', () => {
+  it('parses category, brand, format, price, line search', () => {
     const f = filtersFromSearchParams(
-      '?series=Genshin%20Impact,One%20Piece&brand=Alter&scale=1/7&min=100&max=300',
+      '?category=Skincare,Makeup&brand=SK-II,Shiseido&format=Essence,Serum&min=20&max=120&lineQ=ultimune',
     )
-    expect(f.selectedSeries).toEqual(['Genshin Impact', 'One Piece'])
-    expect(f.selectedBrands).toEqual(['Alter'])
-    expect(f.selectedScales).toEqual(['1/7'])
-    expect(f.priceMin).toBe(100)
-    expect(f.priceMax).toBe(300)
+    expect(f.selectedCategories).toEqual(['Skincare', 'Makeup'])
+    expect(f.selectedBrands).toEqual(['SK-II', 'Shiseido'])
+    expect(f.selectedFormats).toEqual(['Essence', 'Serum'])
+    expect(f.priceMin).toBe(20)
+    expect(f.priceMax).toBe(120)
+    expect(f.lineQuery).toBe('ultimune')
+  })
+})
+
+describe('catalogViewFromSearchParams', () => {
+  it('parses sort and page', () => {
+    const view = catalogViewFromSearchParams('?sort=price-asc&page=3')
+    expect(view.sort).toBe('price-asc')
+    expect(view.page).toBe(3)
+  })
+
+  it('parses product name query', () => {
+    const view = catalogViewFromSearchParams('?q=Essence')
+    expect(view.nameQuery).toBe('Essence')
+  })
+
+  it('round-trips catalog view', () => {
+    const view = {
+      filters: {
+        ...defaultCatalogFilters,
+        lineQuery: 'gokujyun',
+        selectedAvailability: ['in-stock'] satisfies ProductAvailability[],
+        selectedCategories: ['Skincare'],
+        fragranceFreeOnly: true,
+        priceMax: 150,
+      },
+      sort: 'name' as const,
+      page: 2,
+      nameQuery: 'Lotion',
+    }
+    const restored = catalogViewFromSearchParams(
+      searchParamsFromCatalogView(view).toString(),
+    )
+    expect(restored).toEqual(view)
   })
 })
 
 describe('searchParamsFromFilters', () => {
-  it('round-trips availability and mature', () => {
+  it('round-trips availability and skin', () => {
     const filters = {
       ...defaultCatalogFilters,
-      selectedAvailability: ['new-release' as const],
-      matureFilter: 'exclude' as const,
+      selectedAvailability: ['pre-order'] satisfies ProductAvailability[],
+      selectedSkinTypes: ['oily' as const],
     }
     const p = searchParamsFromFilters(filters)
-    expect(p.get('availability')).toBe('new-release')
-    expect(p.get('mature')).toBe('exclude')
+    expect(filtersFromSearchParams(p.toString()).selectedAvailability).toEqual(
+      filters.selectedAvailability,
+    )
+    expect(filtersFromSearchParams(p.toString()).selectedSkinTypes).toEqual([
+      'oily',
+    ])
   })
 
-  it('omits default mature and full price range', () => {
+  it('omits default price max from URL', () => {
     const p = searchParamsFromFilters(defaultCatalogFilters)
-    expect(p.get('mature')).toBeNull()
-    expect(p.get('min')).toBeNull()
     expect(p.get('max')).toBeNull()
+    const withCap = searchParamsFromFilters({
+      ...defaultCatalogFilters,
+      priceMax: 80,
+    })
+    expect(withCap.get('max')).toBe('80')
+    expect(CATALOG_PRICE_MAX).toBe(300)
   })
 
-  it('round-trips filter fields except local series search', () => {
+  it('round-trips filter fields including line search', () => {
     const filters = {
       ...defaultCatalogFilters,
-      seriesQuery: 'local-only',
-      selectedSeries: ['Genshin Impact'],
-      selectedBrands: ['Alter'],
-      selectedScales: ['1/8'],
-      selectedAvailability: ['in-stock', 'pre-order'] satisfies ProductAvailability[],
-      matureFilter: 'exclude' as const,
-      priceMin: 120,
-      priceMax: 400,
+      lineQuery: 'mild',
+      selectedBrands: ['FANCL'],
+      selectedFormats: ['Cleanser'],
     }
-    const restored = filtersFromSearchParams(
-      searchParamsFromFilters(filters).toString(),
+  expect(filtersFromSearchParams(searchParamsFromFilters(filters).toString())).toEqual(
+      filters,
     )
-    expect(restored).toEqual({ ...filters, seriesQuery: '' })
   })
 })
 
 describe('isCatalogNavPresetActive', () => {
-  it('highlights browse only on clean catalog url', () => {
-    expect(isCatalogNavPresetActive('browse', '/catalog', '')).toBe(true)
-    expect(isCatalogNavPresetActive('browse', '/catalog', '?availability=pre-order')).toBe(
-      false,
+  it('detects pre-orders preset', () => {
+    expect(isCatalogNavPresetActive('pre-orders', '/catalog', '?availability=pre-order')).toBe(
+      true,
     )
-    expect(isCatalogNavPresetActive('browse', '/', '')).toBe(false)
   })
 
-  it('highlights menu presets from query', () => {
-    expect(
-      isCatalogNavPresetActive('new-releases', '/catalog', '?availability=new-release'),
-    ).toBe(true)
-    expect(
-      isCatalogNavPresetActive('pre-orders', '/catalog', '?availability=pre-order'),
-    ).toBe(true)
-    expect(
-      isCatalogNavPresetActive('collections', '/catalog', '?view=collections'),
-    ).toBe(true)
+  it('detects bundles nav on bundles route', () => {
+    expect(isCatalogNavPresetActive('bundles', '/bundles', '')).toBe(true)
+    expect(isCatalogNavPresetActive('bundles', '/catalog', '')).toBe(false)
+  })
+
+  it('browse is active on clean catalog url', () => {
+    expect(isCatalogNavPresetActive('browse', '/catalog', '')).toBe(true)
+    expect(isCatalogNavPresetActive('browse', '/catalog', '?category=Skincare')).toBe(
+      false,
+    )
   })
 })

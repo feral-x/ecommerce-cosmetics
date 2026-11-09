@@ -3,21 +3,21 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  CatalogFilters,
   defaultCatalogFilters,
   type CatalogFiltersState,
-} from './CatalogFilters'
+} from '@/shared/model/catalog-filters'
+import { CatalogFilters } from './CatalogFilters'
 
 const baseProps = {
-  series: ['Genshin Impact', 'One Piece'],
-  brands: ['Alter'],
-  scales: ['1/7', '1/8'],
+  categories: ['Skincare', 'Makeup', 'Sun Care'],
+  brands: ['Shiseido', 'SK-II'],
+  formats: ['Essence', 'Serum', 'Sunscreen'],
   filters: defaultCatalogFilters,
   activeCount: 0,
 }
 
 describe('CatalogFilters', () => {
-  it('filters series list by search query', async () => {
+  it('filters line search updates query', async () => {
     const user = userEvent.setup()
 
     function Harness() {
@@ -36,10 +36,8 @@ describe('CatalogFilters', () => {
 
     render(<Harness />)
 
-    await user.type(screen.getByPlaceholderText(/search series/i), 'genshin')
-
-    expect(screen.queryByText('One Piece')).not.toBeInTheDocument()
-    expect(screen.getByText('Genshin Impact')).toBeInTheDocument()
+    await user.type(screen.getByPlaceholderText(/search line/i), 'ultimune')
+    expect(screen.getByDisplayValue('ultimune')).toBeInTheDocument()
   })
 
   it('calls onReset from reset button', async () => {
@@ -58,13 +56,37 @@ describe('CatalogFilters', () => {
     expect(onReset).toHaveBeenCalledTimes(1)
   })
 
-  it('shows active filter count', () => {
+  it('groups filter sections with accessible labels', () => {
     render(
       <CatalogFilters
         {...baseProps}
-        activeCount={3}
         onChange={vi.fn()}
         onReset={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('group', { name: 'Category' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Skin type' })).toBeInTheDocument()
+  })
+
+  it('always shows active filter count including zero', () => {
+    const onChange = vi.fn()
+    const onReset = vi.fn()
+    const { rerender } = render(
+      <CatalogFilters
+        {...baseProps}
+        activeCount={0}
+        onChange={onChange}
+        onReset={onReset}
+      />,
+    )
+    expect(screen.getByText('0 active')).toBeInTheDocument()
+
+    rerender(
+      <CatalogFilters
+        {...baseProps}
+        activeCount={3}
+        onChange={onChange}
+        onReset={onReset}
       />,
     )
     expect(screen.getByText('3 active')).toBeInTheDocument()
