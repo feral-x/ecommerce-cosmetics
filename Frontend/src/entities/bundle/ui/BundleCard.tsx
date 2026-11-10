@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { isRemoteProductImage } from '@/entities/product/lib/is-remote-product-image'
 import type { EnrichedBundle } from '../lib/enrich-bundle'
 import { BundleAddButton } from './BundleAddButton'
 
@@ -44,6 +45,7 @@ export function BundleCard({ bundle }: BundleCardProps) {
                   fill
                   sizes="(max-width: 767px) 40vw, 7rem"
                   className="bundle-card__tile-image"
+                  unoptimized={isRemoteProductImage(item.imageUrl)}
                 />
               ) : (
                 <span className="bundle-card__tile-fallback" aria-hidden>

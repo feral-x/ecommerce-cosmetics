@@ -11,12 +11,10 @@ import { useCart } from './CartProvider'
 
 type ProductCardQuickAddProps = {
   productId: string
-  maxQuantity?: number
 }
 
 export function ProductCardQuickAdd({
   productId,
-  maxQuantity = 99,
 }: ProductCardQuickAddProps) {
   const { getQuantity, addProduct, setProductQuantity } = useCart()
   const quantity = getQuantity(productId)
@@ -54,7 +52,6 @@ export function ProductCardQuickAdd({
   }
 
   const increase = () => {
-    if (quantity >= maxQuantity) return
     setProductQuantity(productId, quantity + 1)
   }
 
@@ -87,7 +84,6 @@ export function ProductCardQuickAdd({
         type="button"
         className="product-card__quick-add-step"
         aria-label="Increase quantity"
-        disabled={quantity >= maxQuantity}
         onClick={(e) => {
           stop(e)
           increase()

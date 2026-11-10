@@ -15,8 +15,6 @@ type ProductPageViewProps = {
 export function ProductPageView({ product }: ProductPageViewProps) {
   const { addProduct } = useCart()
   const [qty, setQty] = useState(1)
-  const maxQty = product.stockCount ?? 99
-
   const priceLabel = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -78,7 +76,6 @@ export function ProductPageView({ product }: ProductPageViewProps) {
             <QuantityStepper
               value={qty}
               min={0}
-              max={maxQty}
               onChange={setQty}
               aria-label="Quantity to add"
             />

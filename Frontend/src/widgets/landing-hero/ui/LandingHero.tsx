@@ -1,11 +1,14 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { mockProducts } from '@/entities/product/model/mock-products'
+import type { Product } from '@/entities/product'
+import { isRemoteProductImage } from '@/entities/product/lib/is-remote-product-image'
 import { ArrowRightIcon } from '@/shared/ui/Icons'
 
-const heroProducts = mockProducts.slice(0, 3)
+type LandingHeroProps = {
+  featuredProducts: Product[]
+}
 
-export function LandingHero() {
+export function LandingHero({ featuredProducts }: LandingHeroProps) {
   return (
     <section className="landing-hero" aria-labelledby="landing-hero-title">
       <div className="landing-hero__glow" aria-hidden />
@@ -56,7 +59,7 @@ export function LandingHero() {
           className="landing-hero__mosaic animate-fade-in-up animation-delay-300"
           aria-label="Featured products"
         >
-          {heroProducts.map((product, index) => {
+          {featuredProducts.map((product, index) => {
             const productHref = `/product/${product.id}`
             const brandHref = `/catalog?brand=${encodeURIComponent(product.brand)}`
             return (
@@ -74,6 +77,7 @@ export function LandingHero() {
                       src={product.images[0]!}
                       alt=""
                       fill
+                      unoptimized={isRemoteProductImage(product.images[0]!)}
                       sizes="(max-width: 1024px) 42vw, 22vw"
                       className="object-cover object-center"
                       priority={index === 0}

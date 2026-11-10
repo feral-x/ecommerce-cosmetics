@@ -1,10 +1,17 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useMemo } from 'react'
 import { BundleCard, getAllBundles } from '@/entities/bundle'
+import { catalogBootstrapQueryOptions } from '@/entities/product'
 
 export function BundlesPageView() {
-  const bundles = getAllBundles()
+  const catalogQuery = useQuery(catalogBootstrapQueryOptions)
+  const bundles = useMemo(
+    () => getAllBundles(),
+    [catalogQuery.dataUpdatedAt, catalogQuery.data?.media?.source],
+  )
 
   return (
     <div className="bundles-page">

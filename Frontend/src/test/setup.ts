@@ -16,6 +16,14 @@ Object.defineProperty(window, 'matchMedia', {
 })
 import { setCatalogBootstrapLoader } from '@/entities/product/api/catalog-bootstrap'
 import { setProductSearchLoader } from '@/entities/product/api/search-products'
+import { setCatalogProductSnapshot } from '@/entities/product/lib/product-catalog-snapshot'
+import {
+  allBrands,
+  allCategories,
+  allFormats,
+  mockProducts,
+} from '@/entities/product/model/mock-products'
+import { beforeEach } from 'vitest'
 import { queryClient } from '@/shared/lib/query-client'
 import { resetNextNavigationMock } from '@/test/navigation-test-state'
 
@@ -36,6 +44,18 @@ vi.mock('next/image', () => ({
     return createElement('img', { alt: '', ...rest })
   },
 }))
+
+beforeEach(() => {
+  setCatalogBootstrapLoader(() =>
+    Promise.resolve({
+      products: mockProducts,
+      categories: allCategories,
+      brands: allBrands,
+      formats: allFormats,
+    }),
+  )
+  setCatalogProductSnapshot(mockProducts)
+})
 
 afterEach(() => {
   cleanup()

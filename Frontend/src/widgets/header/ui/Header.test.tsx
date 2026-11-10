@@ -17,11 +17,18 @@ function renderHeader() {
 }
 
 describe('Header', () => {
-  it('opens header search instead of linking to /search', () => {
+  it('links mobile search to /search and desktop search opens inline', () => {
     renderHeader()
 
-    expect(screen.queryByRole('link', { name: 'Search' })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Hanami J-Beauty, shop catalog' }),
+    ).toHaveAttribute('href', '/catalog')
+    expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute(
+      'href',
+      '/search',
+    )
     expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open menu' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Cart' })).toHaveAttribute('href', '/cart')
     expect(screen.getByRole('link', { name: 'Account' })).toHaveAttribute('href', '/account')
   })

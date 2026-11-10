@@ -112,7 +112,7 @@ export function catalogViewFromSearchParams(search: string): CatalogViewState {
 /** Ключ bootstrap-query: только параметры, влияющие на фасеты/каталог с API. */
 export function catalogBootstrapSearchKey(search: string): string {
   const p = new URLSearchParams(search)
-  for (const key of ['sort', 'page', 'lineQ', 'q']) {
+  for (const key of ['sort', 'page', 'lineQ', 'q', 'min', 'max']) {
     p.delete(key)
   }
   return p.toString()

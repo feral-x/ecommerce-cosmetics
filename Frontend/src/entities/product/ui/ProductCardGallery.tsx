@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { preloadImage } from '../lib/product-image-urls'
+import { isRemoteProductImage } from '../lib/is-remote-product-image'
 
 const HOVER_INTERVAL_MS = 2_400
 const FADE_MS = 1_200
@@ -12,6 +13,8 @@ type ProductCardGalleryProps = {
   productName: string
   images: string[]
   variant?: 'catalog' | 'featured'
+  /** Первый экран каталога — LCP. */
+  imagePriority?: boolean
   /** @deprecated use variant="catalog" */
   compact?: boolean
 }
@@ -21,11 +24,15 @@ export function ProductCardGallery({
   productName,
   images,
   variant,
+  imagePriority = false,
   compact = false,
 }: ProductCardGalleryProps) {
   const resolvedVariant = variant ?? (compact ? 'catalog' : 'featured')
   const isCatalog = resolvedVariant === 'catalog'
-  const slides = images.length > 0 ? images : []
+  const [slideSrc, setSlideSrc] = useState<string[]>(() =>
+    images.length > 0 ? images : [],
+  )
+  const slides = slideSrc.length > 0 ? slideSrc : []
   const [activeIndex, setActiveIndex] = useState(0)
   const [loadedCount, setLoadedCount] = useState(1)
   const [isHovering, setIsHovering] = useState(false)
@@ -34,6 +41,13 @@ export function ProductCardGallery({
   const readyIndicesRef = useRef(new Set<number>())
   const slidesRef = useRef(slides)
   slidesRef.current = slides
+
+  useEffect(() => {
+    setSlideSrc(images.length > 0 ? images : [])
+    setActiveIndex(0)
+    setLoadedCount(1)
+    readyIndicesRef.current = new Set()
+  }, [images, productId])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -53,8 +67,10 @@ export function ProductCardGallery({
     if (readyIndicesRef.current.has(index)) return
 
     setLoadedCount((prev) => Math.max(prev, index + 1))
-    void preloadImage(list[index]!).then(() => {
-      readyIndicesRef.current.add(index)
+    void preloadImage(list[index]!).then((ok) => {
+      if (ok) {
+        readyIndicesRef.current.add(index)
+      }
     })
   }, [])
 
@@ -132,10 +148,13 @@ export function ProductCardGallery({
     >
       {slides.slice(0, loadedCount).map((src, index) => (
         <Image
-          key={`${productId}-${src}`}
+          key={`${productId}-${index}-${src}`}
           src={src}
           alt=""
           fill
+          unoptimized={isRemoteProductImage(src)}
+          priority={imagePriority && index === 0}
+          loading={imagePriority && index === 0 ? 'eager' : 'lazy'}
           sizes={
             isCatalog
               ? '(max-width: 640px) 45vw, (max-width: 1280px) 20vw, 12vw'
@@ -147,6 +166,7 @@ export function ProductCardGallery({
             opacity: index === activeIndex ? 1 : 0,
           }}
           onLoad={() => markImageReady(index)}
+          onError={() => {}}
         />
       ))}
 

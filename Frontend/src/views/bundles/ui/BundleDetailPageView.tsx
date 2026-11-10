@@ -1,9 +1,12 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
 import Image from 'next/image'
 import Link from 'next/link'
-import { getProductById } from '@/entities/product'
-import { BundleAddButton, type EnrichedBundle } from '@/entities/bundle'
+import { useMemo } from 'react'
+import { BundleAddButton, getBundleById, type EnrichedBundle } from '@/entities/bundle'
+import { catalogBootstrapQueryOptions, getProductById } from '@/entities/product'
+import { isRemoteProductImage } from '@/entities/product/lib/is-remote-product-image'
 
 type BundleDetailPageViewProps = {
   bundle: EnrichedBundle
@@ -17,7 +20,17 @@ function formatUsd(amount: number) {
   }).format(amount)
 }
 
-export function BundleDetailPageView({ bundle }: BundleDetailPageViewProps) {
+export function BundleDetailPageView({ bundle: initialBundle }: BundleDetailPageViewProps) {
+  const catalogQuery = useQuery(catalogBootstrapQueryOptions)
+  const bundle = useMemo(() => {
+    return getBundleById(initialBundle.id) ?? initialBundle
+  }, [
+    initialBundle,
+    initialBundle.id,
+    catalogQuery.dataUpdatedAt,
+    catalogQuery.data?.media?.source,
+  ])
+
   return (
     <div className="bundle-detail">
       <div className="container mx-auto px-4 py-8 lg:px-6 lg:py-10">
@@ -37,6 +50,7 @@ export function BundleDetailPageView({ bundle }: BundleDetailPageViewProps) {
                   fill
                   sizes="(max-width: 768px) 45vw, 15vw"
                   className="bundle-detail__tile-image"
+                  unoptimized={isRemoteProductImage(item.imageUrl)}
                 />
               ) : null}
             </div>
@@ -69,6 +83,7 @@ export function BundleDetailPageView({ bundle }: BundleDetailPageViewProps) {
                             width={102}
                             height={102}
                             className="bundle-detail-item__image"
+                            unoptimized={isRemoteProductImage(item.imageUrl)}
                           />
                         ) : null}
                       </div>

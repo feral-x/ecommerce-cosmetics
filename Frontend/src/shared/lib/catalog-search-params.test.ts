@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  catalogBootstrapSearchKey,
   catalogViewFromSearchParams,
   filtersFromSearchParams,
   isCatalogNavPresetActive,
@@ -115,6 +116,14 @@ describe('searchParamsFromFilters', () => {
   expect(filtersFromSearchParams(searchParamsFromFilters(filters).toString())).toEqual(
       filters,
     )
+  })
+})
+
+describe('catalogBootstrapSearchKey', () => {
+  it('ignores price bounds so facet query stays stable', () => {
+    const base = catalogBootstrapSearchKey('?category=Skincare')
+    const withPrice = catalogBootstrapSearchKey('?category=Skincare&min=40&max=180')
+    expect(withPrice).toBe(base)
   })
 })
 

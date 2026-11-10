@@ -1,4 +1,3 @@
-import { buildProductImageUrls } from '../lib/product-image-urls'
 import { buildShortDescription } from '../lib/product-short-label'
 import { extendedMockProductSeeds } from './mock-product-seed'
 import type { Product } from './types'
@@ -31,7 +30,10 @@ function withImages(
     ...product,
     shortDescription: buildShortDescription(product.name),
     description: buildDescription(product),
-    images: buildProductImageUrls(product.id, count),
+    images: Array.from(
+      { length: Math.max(1, count) },
+      (_, offset) => `https://example.com/catalog/${product.id}/${offset + 1}.jpg`,
+    ),
   }
 }
 

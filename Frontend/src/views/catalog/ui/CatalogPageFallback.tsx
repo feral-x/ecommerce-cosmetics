@@ -14,7 +14,9 @@ export function CatalogPageFallback() {
   return (
     <div className="container mx-auto px-4 py-8 lg:px-6 lg:py-10">
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-12">
-        <CatalogFiltersSkeleton />
+        <div className="hidden lg:block">
+          <CatalogFiltersSkeleton />
+        </div>
         <div className="min-w-0">
           <CatalogPageHeader />
           <CatalogToolbarSkeleton />

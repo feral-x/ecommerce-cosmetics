@@ -15,12 +15,13 @@ export function QuantityStepper({
   value,
   onChange,
   min = 0,
-  max = 99,
+  max,
   id,
   'aria-label': ariaLabel = 'Quantity',
 }: QuantityStepperProps) {
   const decrement = () => onChange(Math.max(min, value - 1))
-  const increment = () => onChange(Math.min(max, value + 1))
+  const increment = () =>
+    onChange(max == null ? value + 1 : Math.min(max, value + 1))
 
   return (
     <div className="qty-stepper" role="group" aria-label={ariaLabel}>
@@ -40,7 +41,7 @@ export function QuantityStepper({
         type="button"
         className="qty-stepper__btn"
         onClick={increment}
-        disabled={value >= max}
+        disabled={max != null && value >= max}
         aria-label="Increase quantity"
       >
         <PlusIcon size="sm" />

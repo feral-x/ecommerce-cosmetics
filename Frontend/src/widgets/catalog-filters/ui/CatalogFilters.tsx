@@ -2,10 +2,8 @@
 
 import type { ReactNode } from 'react'
 import type { ProductAvailability, SkinType } from '@/entities/product'
-import {
-  CATALOG_PRICE_MAX,
-  type CatalogFiltersState,
-} from '@/shared/model/catalog-filters'
+import { type CatalogFiltersState } from '@/shared/model/catalog-filters'
+import { PriceRangeFilter } from './PriceRangeFilter'
 
 type CatalogFiltersProps = {
   categories: string[]
@@ -254,56 +252,12 @@ export function CatalogFilters({
       </FilterSection>
 
       <FilterSection title="Price (USD)">
-        <div className="catalog-filter-price-fields grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="text-[11px] text-text-muted">Min</span>
-            <input
-              type="number"
-              min={0}
-              max={filters.priceMax}
-              value={filters.priceMin}
-              onChange={(e) =>
-                onChange({
-                  ...filters,
-                  priceMin: Math.min(
-                    Number(e.target.value) || 0,
-                    filters.priceMax,
-                  ),
-                })
-              }
-              className="filter-input mt-1 tabular-nums"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] text-text-muted">Max</span>
-            <input
-              type="number"
-              min={filters.priceMin}
-              max={CATALOG_PRICE_MAX}
-              value={filters.priceMax}
-              onChange={(e) =>
-                onChange({
-                  ...filters,
-                  priceMax: Math.max(
-                    Number(e.target.value) || CATALOG_PRICE_MAX,
-                    filters.priceMin,
-                  ),
-                })
-              }
-              className="filter-input mt-1 tabular-nums"
-            />
-          </label>
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={CATALOG_PRICE_MAX}
-          value={filters.priceMax}
-          onChange={(e) =>
-            onChange({ ...filters, priceMax: Number(e.target.value) })
+        <PriceRangeFilter
+          priceMin={filters.priceMin}
+          priceMax={filters.priceMax}
+          onCommit={({ priceMin, priceMax }) =>
+            onChange({ ...filters, priceMin, priceMax })
           }
-          className="filter-range mt-4"
-          aria-label="Maximum price"
         />
       </FilterSection>
       <div className="hidden h-6 shrink-0 lg:block" aria-hidden />

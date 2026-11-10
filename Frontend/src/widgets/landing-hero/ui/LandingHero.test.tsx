@@ -5,8 +5,8 @@ import { LandingHero } from './LandingHero'
 
 describe('LandingHero', () => {
   it('links mosaic tiles to product and brand catalog', () => {
-    render(<LandingHero />)
     const featured = mockProducts.slice(0, 3)
+    render(<LandingHero featuredProducts={featured} />)
 
     for (const product of featured) {
       expect(

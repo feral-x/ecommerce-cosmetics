@@ -1,57 +1,91 @@
 import { queryOptions } from '@tanstack/react-query'
 import {
-  allBrands,
-  allCategories,
-  allFormats,
-  mockProducts,
-} from '../model/mock-products'
+  CATALOG_MEDIA_CACHE_TTL_MS,
+  isRemoteCatalogMedia,
+  type CatalogMediaMeta,
+} from '@/shared/api/catalog-media'
+import { setCatalogProductSnapshot } from '../lib/product-catalog-snapshot'
+import type { Product } from '../model/types'
 
 export type CatalogBootstrap = {
-  products: typeof mockProducts
+  products: Product[]
   categories: string[]
   brands: string[]
   formats: string[]
+  media?: CatalogMediaMeta
 }
 
 export type CatalogFacets = Pick<CatalogBootstrap, 'categories' | 'brands' | 'formats'>
 
-const MOCK_LOAD_MS =
-  process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
-    ? 0
-    : process.env.NODE_ENV === 'development'
-      ? 0
-      : 750
+const CLIENT_CATALOG_CACHE_KEY = 'hanami-catalog-bootstrap-v4'
 
-let inflightBootstrap: Promise<CatalogBootstrap> | null = null
+type ClientCacheEntry = {
+  expiresAt: number
+  data: CatalogBootstrap
+}
 
 type BootstrapLoader = () => Promise<CatalogBootstrap>
 
 let bootstrapLoader: BootstrapLoader | null = null
 
-async function loadCatalogBootstrap(): Promise<CatalogBootstrap> {
-  if (!inflightBootstrap) {
-    inflightBootstrap = (async () => {
-      try {
-        if (MOCK_LOAD_MS > 0) {
-          await new Promise((resolve) => setTimeout(resolve, MOCK_LOAD_MS))
-        }
-
-        return {
-          products: mockProducts,
-          categories: allCategories,
-          brands: allBrands,
-          formats: allFormats,
-        }
-      } finally {
-        inflightBootstrap = null
-      }
-    })()
+export function readClientBootstrapCache(): CatalogBootstrap | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.sessionStorage.getItem(CLIENT_CATALOG_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as ClientCacheEntry
+    if (Date.now() > parsed.expiresAt) {
+      window.sessionStorage.removeItem(CLIENT_CATALOG_CACHE_KEY)
+      return null
+    }
+    return parsed.data
+  } catch {
+    return null
   }
-
-  return inflightBootstrap
 }
 
-/** Имитация bootstrap-ответа бэка: товары + фасеты фильтров. */
+function writeClientBootstrapCache(data: CatalogBootstrap) {
+  if (typeof window === 'undefined') return
+  const entry: ClientCacheEntry = {
+    expiresAt: Date.now() + CATALOG_MEDIA_CACHE_TTL_MS,
+    data,
+  }
+  window.sessionStorage.setItem(CLIENT_CATALOG_CACHE_KEY, JSON.stringify(entry))
+}
+
+async function fetchCatalogBootstrapFromApi(): Promise<CatalogBootstrap> {
+  const cached = readClientBootstrapCache()
+  if (cached && isRemoteCatalogMedia(cached.media)) {
+    setCatalogProductSnapshot(cached.products, cached.media)
+    return cached
+  }
+
+  const res = await fetch('/api/catalog/bootstrap', {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  })
+
+  if (!res.ok) {
+    throw new Error(`Catalog bootstrap failed (${res.status})`)
+  }
+
+  const data = (await res.json()) as CatalogBootstrap
+  writeClientBootstrapCache(data)
+  setCatalogProductSnapshot(data.products, data.media)
+  return data
+}
+
+async function loadCatalogBootstrap(): Promise<CatalogBootstrap> {
+  const isTest =
+    process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+  if (isTest || typeof window === 'undefined') {
+    throw new Error('Catalog bootstrap is client-only without a test loader')
+  }
+
+  return fetchCatalogBootstrapFromApi()
+}
+
+/** Bootstrap каталога из Makeup API (кэш 30 мин в sessionStorage). */
 export async function fetchCatalogBootstrap(): Promise<CatalogBootstrap> {
   const loader = bootstrapLoader ?? loadCatalogBootstrap
   return loader()
@@ -60,43 +94,27 @@ export async function fetchCatalogBootstrap(): Promise<CatalogBootstrap> {
 /** Переопределение загрузчика (Vitest). */
 export function setCatalogBootstrapLoader(loader: BootstrapLoader | null) {
   bootstrapLoader = loader
-  inflightBootstrap = null
 }
 
-export function catalogProductsQueryOptions() {
-  return queryOptions({
-    queryKey: ['catalog', 'bootstrap', 'products'] as const,
-    queryFn: () => fetchCatalogBootstrap(),
-    select: (data) => data.products,
-    staleTime: 60_000,
-  })
+export const CATALOG_BOOTSTRAP_STALE_MS = CATALOG_MEDIA_CACHE_TTL_MS
+
+export const catalogBootstrapQueryKey = ['catalog', 'bootstrap'] as const
+
+function catalogBootstrapQueryFn(): Promise<CatalogBootstrap> {
+  return fetchCatalogBootstrap()
 }
 
-export function catalogFacetsQueryOptions(facetKey: string) {
-  return queryOptions({
-    queryKey: ['catalog', 'facets', facetKey] as const,
-    queryFn: () => fetchCatalogBootstrap(),
-    select: (data): CatalogFacets => ({
-      categories: data.categories,
-      brands: data.brands,
-      formats: data.formats,
-    }),
-    staleTime: 60_000,
-    placeholderData: (previous) => previous,
-  })
-}
+export const catalogBootstrapQueryOptions = queryOptions({
+  queryKey: catalogBootstrapQueryKey,
+  queryFn: catalogBootstrapQueryFn,
+  placeholderData: () => readClientBootstrapCache() ?? undefined,
+  staleTime: CATALOG_BOOTSTRAP_STALE_MS,
+  gcTime: CATALOG_BOOTSTRAP_STALE_MS,
+  refetchOnMount: false,
+  refetchOnReconnect: false,
+})
 
-/** @deprecated — используйте catalogProductsQueryOptions / catalogFacetsQueryOptions */
-export function catalogBootstrapQueryKey(catalogSearch: string) {
+/** @deprecated — используйте catalogBootstrapQueryKey + catalogFacetsQueryOptions */
+export function catalogBootstrapSearchQueryKey(catalogSearch: string) {
   return ['catalog', 'bootstrap', catalogSearch] as const
-}
-
-/** @deprecated — используйте catalogProductsQueryOptions / catalogFacetsQueryOptions */
-export function catalogBootstrapQueryOptions(catalogSearch: string) {
-  return queryOptions({
-    queryKey: catalogBootstrapQueryKey(catalogSearch),
-    queryFn: () => fetchCatalogBootstrap(),
-    staleTime: 60_000,
-    placeholderData: (previous) => previous,
-  })
 }

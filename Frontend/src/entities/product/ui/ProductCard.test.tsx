@@ -56,4 +56,5 @@ describe('ProductCard', () => {
     renderCard({ availability: 'in-stock', stockCount: 2 })
     expect(screen.queryByText('2 left')).not.toBeInTheDocument()
   })
+
 })

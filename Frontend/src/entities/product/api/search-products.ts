@@ -1,16 +1,9 @@
 import { queryOptions } from '@tanstack/react-query'
-import { mockProducts } from '../model/mock-products'
+import { resolveProductList } from '../lib/product-catalog-snapshot'
 import type { Product } from '../model/types'
 
 export const PRODUCT_SEARCH_MIN_LENGTH = 2
 export const PRODUCT_SEARCH_MAX_RESULTS = 8
-
-const SEARCH_MOCK_MS =
-  process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
-    ? 0
-    : process.env.NODE_ENV === 'development'
-      ? 120
-      : 400
 
 type SearchLoader = (query: string) => Promise<Product[]>
 
@@ -20,11 +13,7 @@ async function loadSearchProducts(query: string): Promise<Product[]> {
   const q = query.trim().toLowerCase()
   if (q.length < PRODUCT_SEARCH_MIN_LENGTH) return []
 
-  if (SEARCH_MOCK_MS > 0) {
-    await new Promise((resolve) => setTimeout(resolve, SEARCH_MOCK_MS))
-  }
-
-  return mockProducts
+  return resolveProductList()
     .filter((p) => p.name.toLowerCase().includes(q))
     .slice(0, PRODUCT_SEARCH_MAX_RESULTS)
 }

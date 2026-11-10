@@ -7,6 +7,7 @@ import { ProductCardGallery } from './ProductCardGallery'
 
 type ProductCardProps = {
   product: Product
+  imagePriority?: boolean
 }
 
 function StatusBadge({ product }: { product: Product }) {
@@ -18,14 +19,13 @@ function StatusBadge({ product }: { product: Product }) {
   )
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, imagePriority }: ProductCardProps) {
   const priceLabel = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: product.price % 1 === 0 ? 0 : 2,
   }).format(product.price)
 
-  const maxCartQty = product.stockCount ?? 99
   const href = `/product/${product.id}`
 
   return (
@@ -44,6 +44,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 productName={product.name}
                 images={product.images}
                 variant="catalog"
+                imagePriority={imagePriority}
               />
             </div>
           </div>
@@ -73,10 +74,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <Link href={href} className="product-card__price-link" tabIndex={-1}>
             <p className="product-card__price">{priceLabel}</p>
           </Link>
-          <ProductCardQuickAdd
-            productId={product.id}
-            maxQuantity={maxCartQty}
-          />
+          <ProductCardQuickAdd productId={product.id} />
         </div>
       </div>
     </article>

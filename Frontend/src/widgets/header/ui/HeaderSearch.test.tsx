@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import * as searchProducts from '@/entities/product/api/search-products'
-import { mockProducts } from '@/entities/product'
+import { mockProducts } from '@/entities/product/model/mock-products'
 import { queryClient } from '@/shared/lib/query-client'
 import { nextNavigationMock } from '@/test/navigation-test-state'
 import { HeaderSearch } from './HeaderSearch'
@@ -17,10 +17,14 @@ function renderSearch() {
 }
 
 describe('HeaderSearch', () => {
-  it('expands inline search without a separate page link', async () => {
+  it('expands inline search on desktop', async () => {
     const user = userEvent.setup()
     renderSearch()
 
+    expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute(
+      'href',
+      '/search',
+    )
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Search' }))
     expect(

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { CartProvider } from './CartProvider'
 import { ProductCardQuickAdd } from './ProductCardQuickAdd'
 
@@ -9,7 +9,7 @@ describe('ProductCardQuickAdd', () => {
     const user = userEvent.setup()
     render(
       <CartProvider>
-        <ProductCardQuickAdd productId="p1" maxQuantity={5} />
+        <ProductCardQuickAdd productId="p1" />
       </CartProvider>,
     )
 
@@ -26,5 +26,20 @@ describe('ProductCardQuickAdd', () => {
 
     await user.click(screen.getByRole('button', { name: 'Remove from cart' }))
     expect(screen.getByRole('button', { name: 'Add to cart' })).toBeInTheDocument()
+  })
+
+  it('does not bubble clicks to parent (card link)', async () => {
+    const user = userEvent.setup()
+    const onParentClick = vi.fn()
+    render(
+      <CartProvider>
+        <div onClick={onParentClick} role="presentation">
+          <ProductCardQuickAdd productId="p3" />
+        </div>
+      </CartProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Add to cart' }))
+    expect(onParentClick).not.toHaveBeenCalled()
   })
 })

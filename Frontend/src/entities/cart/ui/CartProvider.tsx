@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -12,11 +13,21 @@ import {
   readCartFromStorage,
   writeCartToStorage,
 } from '../lib/cart-storage'
+import {
+  GUEST_CART_ID,
+  migrateGuestCartToUser,
+  readCartForUser,
+  readSessionUser,
+  writeSessionUser,
+} from '@/entities/user/lib/user-storage'
 import { bundleCartLineId } from '../lib/bundle-cart-line'
 import type { CartState } from '../model/types'
 
 type CartContextValue = {
   lines: CartState
+  userPhoneKey: string | null
+  isUserIdentified: boolean
+  confirmUserPhone: (phoneKey: string) => void
   totalItems: number
   getQuantity: (productId: string) => number
   getBundleQuantity: (bundleId: string) => number
@@ -24,6 +35,8 @@ type CartContextValue = {
   addBundle: (bundleId: string, quantity?: number) => void
   removeBundle: (bundleId: string) => void
   setProductQuantity: (productId: string, quantity: number) => void
+  clearCart: () => void
+  signOutUser: () => void
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -33,7 +46,23 @@ function normalizeQuantity(quantity: number) {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [lines, setLines] = useState<CartState>(() => readCartFromStorage())
+  const [userPhoneKey, setUserPhoneKey] = useState<string | null>(null)
+  const [lines, setLines] = useState<CartState>({})
+
+  useEffect(() => {
+    setUserPhoneKey(readSessionUser()?.phoneKey ?? null)
+    setLines(readCartFromStorage())
+  }, [])
+
+  const confirmUserPhone = useCallback((phoneKey: string) => {
+    migrateGuestCartToUser(phoneKey)
+    writeSessionUser({
+      phoneKey,
+      confirmedAt: new Date().toISOString(),
+    })
+    setUserPhoneKey(phoneKey)
+    setLines(readCartForUser(phoneKey))
+  }, [])
 
   const addProduct = useCallback(
     (productId: string, quantity: number) => {
@@ -64,6 +93,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
     [],
   )
+
+  const clearCart = useCallback(() => {
+    setLines(() => {
+      writeCartToStorage({})
+      return {}
+    })
+  }, [])
+
+  const signOutUser = useCallback(() => {
+    writeSessionUser(null)
+    setUserPhoneKey(null)
+    setLines(readCartForUser(GUEST_CART_ID))
+  }, [])
 
   const getQuantity = useCallback(
     (productId: string) => lines[productId] ?? 0,
@@ -97,6 +139,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       lines,
+      userPhoneKey,
+      isUserIdentified: userPhoneKey != null,
+      confirmUserPhone,
       totalItems,
       getQuantity,
       getBundleQuantity,
@@ -104,16 +149,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       addBundle,
       removeBundle,
       setProductQuantity,
+      clearCart,
+      signOutUser,
     }),
     [
       lines,
+      userPhoneKey,
+      confirmUserPhone,
       totalItems,
+      signOutUser,
       getQuantity,
       getBundleQuantity,
       addProduct,
       addBundle,
       removeBundle,
       setProductQuantity,
+      clearCart,
     ],
   )
 

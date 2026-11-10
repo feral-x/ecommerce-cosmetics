@@ -8,6 +8,7 @@ import {
 } from '@/shared/lib/catalog-search-params'
 import { HeaderCartLink } from '@/entities/cart'
 import { UserIcon } from '@/shared/ui/Icons'
+import { HeaderMobileMenu } from './HeaderMobileMenu'
 import { HeaderSearch } from './HeaderSearch'
 
 export function Header() {
@@ -17,19 +18,26 @@ export function Header() {
   const navSearch =
     pathname === '/catalog' && catalogSearch ? `?${catalogSearch}` : ''
 
-  return (
-    <header className="relative z-20 overflow-visible border-b border-border-subtle">
-      <div className="container mx-auto grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 lg:px-6">
-        <Link
-          href="/"
-          className="header-wordmark"
-          aria-label="Hanami J-Beauty, home"
-        >
-          <span className="header-wordmark__name font-display">Hanami</span>
-          <span className="header-wordmark__tag">J-Beauty</span>
-        </Link>
+  if (pathname === '/search') {
+    return null
+  }
 
-        <nav className="hidden justify-center lg:flex" aria-label="Main">
+  return (
+    <header className="site-header relative z-20 overflow-visible border-b border-border-subtle">
+      <div className="site-header__bar container mx-auto flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-4 lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-4 lg:px-6">
+        <div className="flex min-w-0 max-w-[58%] items-center gap-1.5 sm:max-w-none sm:gap-2">
+          <HeaderMobileMenu />
+          <Link
+            href="/catalog"
+            className="header-wordmark min-w-0 truncate"
+            aria-label="Hanami J-Beauty, shop catalog"
+          >
+            <span className="header-wordmark__name font-display">Hanami</span>
+            <span className="header-wordmark__tag">J-Beauty</span>
+          </Link>
+        </div>
+
+        <nav className="header-desktop-nav hidden justify-center lg:flex" aria-label="Main">
           <ul className="flex list-none gap-1 xl:gap-2">
             {mainNavLinks.map(({ id, label, href }) => {
               const active = isMainNavLinkActive(id, pathname, navSearch)
@@ -52,12 +60,12 @@ export function Header() {
           </ul>
         </nav>
 
-        <div className="flex items-center justify-end gap-4 sm:gap-6">
+        <div className="site-header__utilities flex shrink-0 items-center justify-end gap-4 lg:gap-6">
           <HeaderSearch />
           <HeaderCartLink />
           <Link
             href="/account"
-            className="text-text-secondary transition-colors hover:text-primary-soft"
+            className="header-utility-btn text-text-secondary transition-colors hover:text-primary-soft"
             aria-label="Account"
           >
             <UserIcon />

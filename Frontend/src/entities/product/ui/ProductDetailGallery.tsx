@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/shared/ui/Icons'
 import { preloadImage } from '../lib/product-image-urls'
+import { isRemoteProductImage } from '../lib/is-remote-product-image'
 
 const SLIDE_INTERVAL_MS = 4_200
 const FADE_MS = 700
@@ -20,7 +21,10 @@ export function ProductDetailGallery({
   productName,
   images,
 }: ProductDetailGalleryProps) {
-  const slides = images.length > 0 ? images : []
+  const [slideSrc, setSlideSrc] = useState<string[]>(() =>
+    images.length > 0 ? images : [],
+  )
+  const slides = slideSrc.length > 0 ? slideSrc : []
   const [activeIndex, setActiveIndex] = useState(0)
   const [loadedCount, setLoadedCount] = useState(1)
   const [reduceMotion, setReduceMotion] = useState(false)
@@ -28,6 +32,12 @@ export function ProductDetailGallery({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const slidesRef = useRef(slides)
   slidesRef.current = slides
+
+  useEffect(() => {
+    setSlideSrc(images.length > 0 ? images : [])
+    setActiveIndex(0)
+    setLoadedCount(1)
+  }, [images, productId])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -121,17 +131,20 @@ export function ProductDetailGallery({
         >
           {slides.slice(0, loadedCount).map((src, index) => (
             <Image
-              key={`${productId}-${src}`}
+              key={`${productId}-${index}-${src}`}
               src={src}
               alt=""
               fill
+              unoptimized={isRemoteProductImage(src)}
               sizes="(max-width: 1023px) 100vw, 50vw"
               className="product-detail-gallery__image product-detail-gallery__image--fade"
               priority={index === 0}
+              loading={index === 0 ? 'eager' : 'lazy'}
               style={{
                 ['--gallery-fade-ms' as string]: `${FADE_MS}ms`,
                 opacity: index === activeIndex ? 1 : 0,
               }}
+              onError={() => {}}
             />
           ))}
         </div>
@@ -185,7 +198,9 @@ export function ProductDetailGallery({
                     alt=""
                     width={72}
                     height={72}
+                    unoptimized={isRemoteProductImage(src)}
                     className="product-detail-gallery__thumb-image"
+                    onError={() => {}}
                   />
                 </button>
               </li>

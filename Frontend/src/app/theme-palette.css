@@ -1,0 +1,60 @@
+/**
+ * Hanami — единственное место для правки палитры.
+ * Tailwind v4: токены из @theme → классы bg-*, text-*, border-* (см. README внизу).
+ *
+ * Настроение: тёплая washi, бени-rose, золото; elevated заметно глубже bg.
+ */
+@theme {
+  /* Фоны */
+  --color-bg: #faf6f2;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f0e8e2;
+
+  /* Бренд — rose / beni */
+  --color-primary: #b35560;
+  --color-primary-hover: #9a4550;
+  --color-primary-soft: #c97b84;
+
+  /* Текст */
+  --color-text-primary: #1c1715;
+  --color-text-secondary: #3f3834;
+  --color-text-muted: #5a5048;
+
+  /* Линии */
+  --color-border: #e5dcd6;
+  --color-border-subtle: rgb(42 34 32 / 0.1);
+
+  /* Акцент — золото / kinpaku */
+  --color-accent: #c4a574;
+  --color-accent-hover: #a88858;
+
+  /* Семантика */
+  --color-success: #5a8f6e;
+  --color-warning: #c9924a;
+  --color-danger: #c25c5c;
+
+  /* UI-метки (скоринг / бейджи) */
+  --color-grade-a: #065f46;
+  --color-grade-a-text: #a7f3d0;
+  --color-grade-b: #92400e;
+  --color-grade-b-text: #fcd34d;
+  --color-grade-c: #991b1b;
+  --color-grade-c-text: #fca5a5;
+
+  /* Скругления */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Подложка карточек товара */
+  --color-product-stage: #f2e6df;
+}
+
+/*
+  Tailwind-утилиты (примеры):
+  bg-bg | bg-surface | bg-surface-elevated | bg-primary | bg-primary-soft | bg-accent
+  text-text-primary | text-text-secondary | text-text-muted | text-primary | text-accent
+  border-border | border-border-subtle
+  hover:bg-primary-hover | hover:text-accent-hover
+*/
