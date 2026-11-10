@@ -1,7 +1,7 @@
 import type { CatalogMediaMeta } from '@/shared/api/catalog-media'
 import type { Product } from '../model/types'
 
-const SNAPSHOT_KEY = 'hanami-catalog-snapshot-v4'
+const SNAPSHOT_KEY = 'hanami-catalog-snapshot-v5'
 const SNAPSHOT_TTL_MS = 30 * 60 * 1000
 
 type SnapshotPayload = {

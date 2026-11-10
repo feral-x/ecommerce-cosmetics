@@ -33,4 +33,16 @@ describe('map-makeup-catalog', () => {
     expect(list[0]!.id).toBe('1')
     expect(list[1]!.id).toBe('2')
   })
+
+  it('assigns demo new-release and pre-order labels', () => {
+    const pool = Array.from({ length: 20 }, (_, i) => ({
+      ...sample,
+      id: 9000 + i,
+    }))
+    const list = mapMakeupPoolToCatalog(pool, 20)
+    expect(list.some((p) => p.availability === 'new-release')).toBe(true)
+    expect(list.some((p) => p.availability === 'pre-order')).toBe(true)
+    expect(list.find((p) => p.id === '2')?.availability).toBe('new-release')
+    expect(list.find((p) => p.id === '4')?.availability).toBe('pre-order')
+  })
 })

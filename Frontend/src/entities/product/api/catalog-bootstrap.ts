@@ -17,7 +17,7 @@ export type CatalogBootstrap = {
 
 export type CatalogFacets = Pick<CatalogBootstrap, 'categories' | 'brands' | 'formats'>
 
-const CLIENT_CATALOG_CACHE_KEY = 'hanami-catalog-bootstrap-v4'
+const CLIENT_CATALOG_CACHE_KEY = 'hanami-catalog-bootstrap-v5'
 
 type ClientCacheEntry = {
   expiresAt: number

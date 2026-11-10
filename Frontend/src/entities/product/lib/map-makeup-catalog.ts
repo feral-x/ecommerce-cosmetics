@@ -6,6 +6,7 @@ import type {
   ProductFormat,
   SkinType,
 } from '../model/types'
+import { applyDemoAvailability } from './apply-demo-availability'
 
 const FORMAT_BY_TYPE: Record<string, ProductFormat> = {
   lipstick: 'Lip',
@@ -119,7 +120,7 @@ export function mapMakeupProductToCatalog(
     sizeLabel: 'Standard',
     formatKey,
     brand,
-    availability: 'in-stock',
+    availability: 'in-stock', // overridden in mapMakeupPoolToCatalog
     skinTypes: mapSkinTypes(detailHint),
     fragranceFree: detailHint.includes('vegan'),
     price: parsePrice(item.price),
@@ -140,7 +141,7 @@ export function mapMakeupPoolToCatalog(
     const mapped = mapMakeupProductToCatalog(item, String(products.length + 1))
     if (mapped) products.push(mapped)
   }
-  return products
+  return applyDemoAvailability(products)
 }
 
 export function catalogFacetsFromProducts(products: Product[]) {
